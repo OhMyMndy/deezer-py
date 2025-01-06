@@ -1,11 +1,13 @@
 import re
+from pprint import pprint
 import requests
 import json
 from deezer.gw import GW
 from deezer.api import API
 from deezer.errors import DeezerError, WrongLicense, WrongGeolocation
+from typing import Optional
 
-__version__ = "1.3.7"
+__version__ = "1.3.8"
 
 
 class TrackFormats:
@@ -22,7 +24,7 @@ class TrackFormats:
 
 
 class Deezer:
-    def __init__(self):
+    def __init__(self, access_token: Optional[int] = None):
         self.http_headers = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/79.0.3945.130 Safari/537.36"
@@ -34,7 +36,7 @@ class Deezer:
         self.childs = []
         self.selected_account = 0
 
-        self.api = API(self.session, self.http_headers)
+        self.api = API(self.session, self.http_headers, access_token)
         self.gw = GW(self.session, self.http_headers)
 
     def get_session(self):
@@ -212,6 +214,16 @@ class Deezer:
             raise WrongLicense(format)
 
         result = []
+        # "formats": [
+        #     {"cipher": "BF_CBC_STRIPE", "format": format}
+        #     for format in [
+        #         "FLAC",
+        #         "MP3_320",
+        #         "MP3_128",
+        #         "MP3_64",
+        #         "MP3_MISC",
+        #     ]
+        # ],
         try:
             request = self.session.post(
                 "https://media.deezer.com/v1/get_url",
@@ -231,7 +243,9 @@ class Deezer:
             )
             request.raise_for_status()
             response = request.json()
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.HTTPError as e:
+            # print(e)
+            # TODO: log this error somehow
             return []
 
         if len(response.get("data", [])):
@@ -242,6 +256,7 @@ class Deezer:
                     else:
                         result.append(DeezerError(json.dumps(response)))
                 if "media" in data and len(data["media"]):
+                    # TODO: get correct format based on type in the sources array
                     result.append(data["media"][0]["sources"][0]["url"])
                 else:
                     result.append(None)

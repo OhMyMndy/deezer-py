@@ -1,5 +1,9 @@
+from typing import Optional
 import requests
 from time import sleep
+import os
+
+from pprint import pprint
 
 import json
 from deezer.errors import (
@@ -32,10 +36,12 @@ class SearchOrder:
 
 
 class API:
-    def __init__(self, session, headers):
+    def __init__(self, session, headers, access_token: Optional[int] = None):
         self.http_headers = headers
         self.session = session
-        self.access_token = None
+        self.access_token = access_token
+        # TODO: add timeout
+        # TODO add debug mode
 
     def api_call(self, method, args=None):
         if args is None:
